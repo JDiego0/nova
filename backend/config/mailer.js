@@ -1,30 +1,28 @@
 // config/mailer.js
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  host:   process.env.SMTP_HOST || 'smtp.gmail.com',
-  port:   parseInt(process.env.SMTP_PORT) || 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM = process.env.SMTP_FROM || 'NOVA <novainterprise@gmail.com>';
+const FROM = process.env.SMTP_FROM || 'NOVA <onboarding@resend.dev>';
 
 const sendMail = async (to, subject, html) => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('SMTP no configurado. Correo no enviado a:', to);
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY no configurada. Correo no enviado a:', to);
     return;
   }
   try {
-    await transporter.sendMail({ from: FROM, to, subject, html });
+    const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+    if (error) {
+      console.error('Error al enviar correo a', to);
+      console.error('Asunto:', subject);
+      console.error('Error:', error.message);
+      console.error('Codigo:', error.name || 'sin codigo');
+      throw new Error(error.message);
+    }
   } catch (err) {
     console.error('Error al enviar correo a', to);
     console.error('Asunto:', subject);
     console.error('Error:', err.message);
-    console.error('Codigo:', err.code || 'sin codigo');
     throw err;
   }
 };

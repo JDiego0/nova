@@ -22,6 +22,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.11.3",
     "nodemailer": "^6.9.14",
+    "resend": "^6.9.3",
     "streamifier": "^0.1.1"
   },
   "devDependencies": {
