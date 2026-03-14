@@ -1,1 +1,1 @@
-window.NOVA_API_URL = 'https://nova-backend.onrender.com';
+window.NOVA_API_URL = 'https://nova-backend-c3ui.onrender.com';
