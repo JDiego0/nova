@@ -21,11 +21,18 @@ const FROM = process.env.SMTP_FROM || 'NOVA <novainterprise@gmail.com>';
  */
 const sendMail = async (to, subject, html) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('⚠️  SMTP no configurado (faltan SMTP_USER o SMTP_PASS). Correo no enviado a:', to);
     return;
   }
   try {
     await transporter.sendMail({ from: FROM, to, subject, html });
+    console.log('Correo enviado correctamente a:', to, '| Asunto:', subject);
   } catch (err) {
+    console.error('Error al enviar correo a', to);
+    console.error('   Asunto:', subject);
+    console.error('   Error:', err.message);
+    console.error('   Código:', err.code || 'sin código');
+    throw err; // relanza para que el controlador devuelva error real al frontend
   }
 };
 
