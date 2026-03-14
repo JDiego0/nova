@@ -240,7 +240,7 @@ INSTRUCCIONES
 Analiza con criterio equilibrado:
 
 1. DOCUMENTACION Y DESCRIPCION: Si el usuario adjunto un documento o dio una descripcion coherente, es un factor positivo. No penalices la ausencia de adjunto en situaciones donde no siempre es posible tenerlo (emergencias, imprevistos).
-2. TIPO DE SOLICITUD: Evalua si el motivo es razonable para el contexto de un bootcamp. La mayoria de solicitudes tienen justificacion valida.
+2. TIPO DE SOLICITUD: Evalua si el motivo es razonable para el contexto de la organizacion. La mayoria de solicitudes tienen justificacion valida.
 3. TEMPORALIDAD: La retroactividad no es automaticamente negativa. Las emergencias y situaciones imprevistas justifican solicitudes tardias. Considera anticipacion insuficiente solo si la solicitud claramente pudo hacerse antes.
 4. HISTORIAL: Un historial con pocas solicitudes es neutro o positivo. No interpretes negativamente el numero de solicitudes si no hay un patron claro de abuso.
 5. COHERENCIA: Verifica que el tipo de solicitud, la descripcion y la urgencia sean consistentes. Las inconsistencias reales son la razon principal para alertar.
