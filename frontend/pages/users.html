@@ -30,6 +30,7 @@
     .act-btn { padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:.78rem;transition:all var(--trans);display:inline-flex;align-items:center;gap:3px;white-space:nowrap;flex-shrink:0; }
     .act-btn:hover      { border-color:var(--primary);color:var(--primary); }
     .act-btn.red:hover  { border-color:var(--danger);color:var(--danger); }
+    .act-btn:disabled   { opacity:.5;cursor:not-allowed;pointer-events:none; }
     .actions-cell       { display:flex;gap:4px;flex-wrap:nowrap;align-items:center; }
 
     /* ── Tabla sin scroll horizontal ────────────────── */
@@ -69,6 +70,19 @@
     .filter-row .search-wrap i { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3); }
     .filter-row .search-wrap input { padding-left:36px;width:100%; }
 
+    /* ── Btn loading state ──────────────────────────── */
+    .btn-spinner { display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0; }
+    .btn-spinner.dark { border-color:rgba(0,0,0,.2);border-top-color:var(--text2); }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .btn[disabled], button[disabled] { opacity:.6;cursor:not-allowed;pointer-events:none; }
+
+    /* ── Overlay de carga global ────────────────────── */
+    #loading-overlay { position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px; }
+    #loading-overlay.show { display:flex; }
+    #loading-overlay .lo-box { background:var(--surface);border-radius:16px;padding:28px 36px;display:flex;flex-direction:column;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.18); }
+    #loading-overlay .lo-spinner { width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite; }
+    #loading-overlay .lo-text { font-size:.9rem;color:var(--text2);font-weight:500; }
+
     @media(max-width:768px) {
       .col-tel,.col-doc { display:none; }
       .col-estado  { width:36px; }
@@ -77,6 +91,14 @@
   </style>
 </head>
 <body>
+
+<!-- ── Overlay de carga global ──────────────────────── -->
+<div id="loading-overlay">
+  <div class="lo-box">
+    <div class="lo-spinner"></div>
+    <div class="lo-text" id="loading-text">Procesando...</div>
+  </div>
+</div>
 
 <!-- ── Sidebar ─────────────────────────────────────── -->
 <aside class="sidebar" id="sidebar">
@@ -107,7 +129,7 @@
   <header class="topbar">
     <button onclick="toggleSidebar()" class="btn-icon btn-ghost"><i class="bi bi-list" style="font-size:1.2rem"></i></button>
     <span class="topbar-title">Gestión de Usuarios</span>
-    <button class="btn btn-primary btn-sm" onclick="openForm(null)"><i class="bi bi-plus-lg"></i> Nuevo usuario</button>
+    <button class="btn btn-primary btn-sm" id="btn-nuevo" onclick="openForm(null)"><i class="bi bi-plus-lg"></i> Nuevo usuario</button>
     <div class="user-avatar" id="topbar-avatar"></div>
   </header>
 
@@ -115,9 +137,9 @@
 
     <!-- Stats -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:24px">
-      <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-people"></i></div><div><div class="stat-value" id="s-total">0</div><div class="stat-label">Total usuarios</div></div></div>
-      <div class="stat-card"><div class="stat-icon green"><i class="bi bi-person-check"></i></div><div><div class="stat-value" id="s-activos">0</div><div class="stat-label">Activos</div></div></div>
-      <div class="stat-card"><div class="stat-icon red"><i class="bi bi-person-x"></i></div><div><div class="stat-value" id="s-inactivos">0</div><div class="stat-label">Inactivos</div></div></div>
+      <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-people"></i></div><div><div class="stat-value" id="s-total">—</div><div class="stat-label">Total usuarios</div></div></div>
+      <div class="stat-card"><div class="stat-icon green"><i class="bi bi-person-check"></i></div><div><div class="stat-value" id="s-activos">—</div><div class="stat-label">Activos</div></div></div>
+      <div class="stat-card"><div class="stat-icon red"><i class="bi bi-person-x"></i></div><div><div class="stat-value" id="s-inactivos">—</div><div class="stat-label">Inactivos</div></div></div>
     </div>
 
     <!-- Filtros -->
@@ -134,7 +156,9 @@
           <select class="form-select" style="width:175px;min-width:175px" id="filter-estado" onchange="renderTable()">
             <option value="">Todos los estados</option>
           </select>
-          <button class="btn btn-ghost btn-sm" onclick="loadUsers()" title="Actualizar"><i class="bi bi-arrow-clockwise"></i></button>
+          <button class="btn btn-ghost btn-sm" id="btn-refresh" onclick="refreshAll()" title="Actualizar">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -189,8 +213,11 @@
       <div id="form-error" style="color:var(--danger);font-size:.85rem;margin-top:8px;display:none"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-form')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveUser()"><i class="bi bi-check-lg"></i> Guardar</button>
+      <button class="btn btn-ghost" id="btn-cancelar-form" onclick="closeModal('modal-form')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar" onclick="saveUser()">
+        <span id="btn-guardar-text"><i class="bi bi-check-lg"></i> Guardar</span>
+        <span id="btn-guardar-spinner" style="display:none" class="btn-spinner"></span>
+      </button>
     </div>
   </div>
 </div>
@@ -219,8 +246,11 @@
       <p>Se eliminarán también sus novedades asociadas.</p>
     </div>
     <div class="modal-footer" style="justify-content:center">
-      <button class="btn btn-ghost" onclick="closeModal('modal-del')">Cancelar</button>
-      <button class="btn btn-danger" onclick="confirmDelete()">Sí, eliminar</button>
+      <button class="btn btn-ghost" id="btn-cancelar-del" onclick="closeModal('modal-del')">Cancelar</button>
+      <button class="btn btn-danger" id="btn-confirmar-del" onclick="confirmDelete()">
+        <span id="btn-del-text"><i class="bi bi-trash3"></i> Sí, eliminar</span>
+        <span id="btn-del-spinner" style="display:none" class="btn-spinner"></span>
+      </button>
     </div>
   </div>
 </div>
@@ -231,6 +261,36 @@
 <script>
   let users = [], catalogs = {}, deleteId = null, viewId = null;
 
+  // ── Helpers de loading ────────────────────────────
+  function showOverlay(msg = 'Procesando...') {
+    document.getElementById('loading-text').textContent = msg;
+    document.getElementById('loading-overlay').classList.add('show');
+  }
+  function hideOverlay() {
+    document.getElementById('loading-overlay').classList.remove('show');
+  }
+
+  function setBtnLoading(btnId, textId, spinnerId, loading, originalHTML) {
+    const btn = document.getElementById(btnId);
+    const txt = document.getElementById(textId);
+    const sp  = document.getElementById(spinnerId);
+    if (!btn) return;
+    btn.disabled = loading;
+    if (txt) txt.style.display = loading ? 'none' : '';
+    if (sp)  sp.style.display  = loading ? ''     : 'none';
+    if (!loading && originalHTML && txt) txt.innerHTML = originalHTML;
+  }
+
+  function setRefreshLoading(loading) {
+    const btn = document.getElementById('btn-refresh');
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? '<span class="btn-spinner dark" style="width:13px;height:13px;border-width:2px"></span>'
+      : '<i class="bi bi-arrow-clockwise"></i>';
+  }
+
+  // ── Init ──────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     initTheme(); initSidebar();
     const user = Auth.requireAdmin();
@@ -248,6 +308,15 @@
   }
   const _setTheme = setTheme;
   window.setTheme = t => { _setTheme(t); updateLogo(); };
+
+  async function refreshAll() {
+    setRefreshLoading(true);
+    try {
+      await Promise.all([loadUsers(), loadStats(), loadPendingBadge()]);
+    } finally {
+      setRefreshLoading(false);
+    }
+  }
 
   async function loadPendingBadge() {
     try {
@@ -288,7 +357,7 @@
     document.getElementById('tbody').innerHTML =
       `<tr><td colspan="${COLS}" style="text-align:center;padding:40px">
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;color:var(--text3)">
-          <div class="spinner"></div>Cargando...
+          <div class="spinner"></div>Cargando usuarios...
         </div></td></tr>`;
     try {
       const r = await http.get('/users');
@@ -296,7 +365,11 @@
       renderTable();
     } catch (err) {
       document.getElementById('tbody').innerHTML =
-        `<tr><td colspan="${COLS}" style="text-align:center;padding:40px;color:var(--danger)">Error: ${err.message}</td></tr>`;
+        `<tr><td colspan="${COLS}" style="text-align:center;padding:40px;color:var(--danger)">
+          <i class="bi bi-exclamation-triangle" style="font-size:1.5rem;display:block;margin-bottom:8px"></i>
+          Error al cargar: ${err.message}
+          <br><button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="loadUsers()">Reintentar</button>
+        </td></tr>`;
     }
   }
 
@@ -359,9 +432,9 @@
         </td>
         <td class="col-acc">
           <div class="actions-cell">
-            <button class="act-btn" onclick="viewUser('${u.id}')"><i class="bi bi-eye"></i></button>
-            <button class="act-btn" onclick="openForm('${u.id}')"><i class="bi bi-pencil"></i></button>
-            <button class="act-btn red" onclick="askDelete('${u.id}')"><i class="bi bi-trash3"></i></button>
+            <button class="act-btn" title="Ver detalle" onclick="viewUser('${u.id}')"><i class="bi bi-eye"></i></button>
+            <button class="act-btn" title="Editar" onclick="openForm('${u.id}')"><i class="bi bi-pencil"></i></button>
+            <button class="act-btn red" title="Eliminar" onclick="askDelete('${u.id}')"><i class="bi bi-trash3"></i></button>
           </div>
         </td>
       </tr>`;
@@ -390,18 +463,19 @@
     document.getElementById('pw-hint').style.display = u ? '' : 'none';
     document.getElementById('f-password').placeholder = u ? 'Dejar vacío = no cambiar' : '••••••••';
 
+    // Resetear botón guardar por si quedó en estado loading
+    setBtnLoading('btn-guardar','btn-guardar-text','btn-guardar-spinner', false, '<i class="bi bi-check-lg"></i> Guardar');
+
     fillSelect('f-tipodoc', catalogs.tipos_documento||[], u?.tipo_documento);
     fillSelect('f-role',    catalogs.roles||[], u?.role, false);
     fillSelect('f-estado',  catalogs.estados||[], u?.estado, false);
     fillSelect('f-horario', catalogs.horarios||[], u?.horario);
 
-    // Clan como select
     const clanEl = document.getElementById('f-clan');
     clanEl.innerHTML = '<option value="">Sin asignar</option>' +
       (catalogs.clanes||[]).map(c =>
         `<option ${c.nombre===u?.clan?'selected':''}>${c.nombre}</option>`).join('');
 
-    // Cohorte como select (numero INT)
     const cohEl = document.getElementById('f-cohorte');
     cohEl.innerHTML = '<option value="">Sin asignar</option>' +
       (catalogs.cohortes||[]).map(c =>
@@ -412,11 +486,10 @@
   }
 
   async function saveUser() {
-    const id = document.getElementById('f-id').value;
+    const id    = document.getElementById('f-id').value;
     const errEl = document.getElementById('form-error');
     errEl.style.display = 'none';
 
-    const fd = new FormData();
     const fields = {
       nombre:        document.getElementById('f-nombre').value.trim(),
       apellido:      document.getElementById('f-apellido').value.trim(),
@@ -429,7 +502,7 @@
       tipo_documento:document.getElementById('f-tipodoc').value,
       clan:          document.getElementById('f-clan').value,
       horario:       document.getElementById('f-horario').value,
-      cohorte:       document.getElementById('f-cohorte').value,   // número INT como string
+      cohorte:       document.getElementById('f-cohorte').value,
       avatar:        document.getElementById('f-avatar').value.trim(),
       observaciones: document.getElementById('f-obs').value.trim(),
     };
@@ -441,6 +514,11 @@
       errEl.textContent = 'La contraseña es requerida para nuevos usuarios'; errEl.style.display=''; return;
     }
 
+    // Activar spinner en botón guardar
+    setBtnLoading('btn-guardar','btn-guardar-text','btn-guardar-spinner', true);
+    document.getElementById('btn-cancelar-form').disabled = true;
+
+    const fd = new FormData();
     for (const [k,v] of Object.entries(fields)) if (v !== '') fd.append(k, v);
     const avatarFile = document.getElementById('f-avatar-file').files[0];
     if (avatarFile) fd.append('avatar', avatarFile);
@@ -450,11 +528,21 @@
         ? await http.putForm(`/users/${id}`, fd)
         : await http.postForm('/users', fd);
       const data = await r.json();
-      if (!r.ok) { errEl.textContent = data.error || 'Error'; errEl.style.display=''; return; }
-      showToast(id ? 'Usuario actualizado' : 'Usuario creado', 'success');
+      if (!r.ok) {
+        errEl.textContent = data.error || 'Error al guardar';
+        errEl.style.display = '';
+        return;
+      }
+      showToast(id ? 'Usuario actualizado ✓' : 'Usuario creado ✓', 'success');
       closeModal('modal-form');
-      loadUsers(); loadStats();
-    } catch { errEl.textContent = 'Error de conexión'; errEl.style.display=''; }
+      await Promise.all([loadUsers(), loadStats()]);
+    } catch {
+      errEl.textContent = 'Error de conexión. Intenta de nuevo.';
+      errEl.style.display = '';
+    } finally {
+      setBtnLoading('btn-guardar','btn-guardar-text','btn-guardar-spinner', false, '<i class="bi bi-check-lg"></i> Guardar');
+      document.getElementById('btn-cancelar-form').disabled = false;
+    }
   }
 
   function viewUser(id) {
@@ -496,18 +584,33 @@
   }
 
   function editFromView() { closeModal('modal-view'); openForm(viewId); }
-  function askDelete(id) { deleteId = id; openModal('modal-del'); }
+  function askDelete(id) {
+    deleteId = id;
+    // Resetear botón eliminar
+    setBtnLoading('btn-confirmar-del','btn-del-text','btn-del-spinner', false, '<i class="bi bi-trash3"></i> Sí, eliminar');
+    openModal('modal-del');
+  }
 
   async function confirmDelete() {
     if (!deleteId) return;
+    setBtnLoading('btn-confirmar-del','btn-del-text','btn-del-spinner', true);
+    document.getElementById('btn-cancelar-del').disabled = true;
     try {
       const r = await http.delete(`/users/${deleteId}`);
-      if (!r.ok) { showToast('Error al eliminar', 'error'); return; }
-      showToast('Usuario eliminado', 'success');
+      if (!r.ok) {
+        showToast('Error al eliminar el usuario', 'error');
+        return;
+      }
+      showToast('Usuario eliminado ✓', 'success');
       closeModal('modal-del');
       deleteId = null;
-      loadUsers(); loadStats();
-    } catch { showToast('Error', 'error'); }
+      await Promise.all([loadUsers(), loadStats()]);
+    } catch {
+      showToast('Error de conexión. Intenta de nuevo.', 'error');
+    } finally {
+      setBtnLoading('btn-confirmar-del','btn-del-text','btn-del-spinner', false, '<i class="bi bi-trash3"></i> Sí, eliminar');
+      document.getElementById('btn-cancelar-del').disabled = false;
+    }
   }
 </script>
 </body>

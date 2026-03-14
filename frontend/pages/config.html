@@ -25,8 +25,15 @@
     .btn-icon-sm { width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;transition:all var(--trans); }
     .btn-icon-sm:hover       { border-color:var(--primary);color:var(--primary); }
     .btn-icon-sm.red:hover   { border-color:var(--danger);color:var(--danger); }
+    .btn-icon-sm:disabled    { opacity:.45;cursor:not-allowed;pointer-events:none; }
     .add-row  { display:flex; gap:8px; padding:12px 20px; border-top:1px solid var(--border); background:var(--surface2); }
     .config-empty { padding:32px; text-align:center; color:var(--text3); font-size:.875rem; }
+
+    /* ── Btn spinner ── */
+    .btn-spinner { display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0; }
+    .btn-spinner.dark { border-color:rgba(0,0,0,.15);border-top-color:var(--text2); }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    button[disabled],.btn[disabled] { opacity:.6;cursor:not-allowed;pointer-events:none; }
 
     /* ── Bulk import ─────────────────────────────────── */
     .bulk-card { background:var(--surface); border-radius:16px; border:2px dashed var(--border); overflow:hidden; }
@@ -92,11 +99,14 @@
           <span style="font-size:.78rem;color:var(--text3)" id="clan-count">0 registros</span>
         </div>
         <ul class="config-list" id="clan-list">
-          <li class="config-empty">Cargando...</li>
+          <li class="config-empty"><div class="spinner" style="margin:0 auto 8px"></div>Cargando...</li>
         </ul>
         <div class="add-row">
           <input type="text" class="form-control" id="clan-new" placeholder="Nombre del clan (ej: Tesla)" style="flex:1">
-          <button class="btn btn-primary btn-sm" onclick="addClan()"><i class="bi bi-plus-lg"></i> Agregar</button>
+          <button class="btn btn-primary btn-sm" id="btn-add-clan" onclick="addClan()">
+            <span id="add-clan-text"><i class="bi bi-plus-lg"></i> Agregar</span>
+            <span id="add-clan-spinner" style="display:none" class="btn-spinner"></span>
+          </button>
         </div>
       </div>
 
@@ -107,11 +117,14 @@
           <span style="font-size:.78rem;color:var(--text3)" id="cohorte-count">0 registros</span>
         </div>
         <ul class="config-list" id="cohorte-list">
-          <li class="config-empty">Cargando...</li>
+          <li class="config-empty"><div class="spinner" style="margin:0 auto 8px"></div>Cargando...</li>
         </ul>
         <div class="add-row">
           <input type="number" class="form-control" id="cohorte-new" placeholder="Número (ej: 6)" min="1" style="flex:1">
-          <button class="btn btn-primary btn-sm" onclick="addCohorte()"><i class="bi bi-plus-lg"></i> Agregar</button>
+          <button class="btn btn-primary btn-sm" id="btn-add-cohorte" onclick="addCohorte()">
+            <span id="add-cohorte-text"><i class="bi bi-plus-lg"></i> Agregar</span>
+            <span id="add-cohorte-spinner" style="display:none" class="btn-spinner"></span>
+          </button>
         </div>
       </div>
 
@@ -134,7 +147,6 @@
         <code>nombre,apellido,documento,correo,password,telefono,clan,cohorte,horario</code>
       </div>
 
-      <!-- Zona de drop -->
       <div id="step-upload">
         <div class="drop-zone" id="drop-zone"
              onclick="document.getElementById('csv-input').click()"
@@ -146,7 +158,6 @@
         </div>
       </div>
 
-      <!-- Vista previa + confirmación -->
       <div id="step-preview" style="display:none;padding:16px 20px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
           <div>
@@ -156,13 +167,12 @@
           <div style="display:flex;gap:8px">
             <button class="btn btn-ghost btn-sm" onclick="resetUpload()"><i class="bi bi-arrow-left"></i> Cambiar archivo</button>
             <button class="btn btn-primary btn-sm" id="btn-confirm" onclick="confirmImport()">
-              <i class="bi bi-upload"></i> Cargar datos
+              <span id="confirm-text"><i class="bi bi-upload"></i> Cargar datos</span>
+              <span id="confirm-spinner" style="display:none" class="btn-spinner"></span>
             </button>
           </div>
         </div>
-        <!-- Alertas de validación -->
         <div id="preview-errors" style="display:none;margin-bottom:10px"></div>
-        <!-- Tabla de preview -->
         <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px;max-height:280px;overflow-y:auto">
           <table style="width:100%;border-collapse:collapse;font-size:.78rem">
             <thead id="preview-head" style="position:sticky;top:0;background:var(--surface2)"></thead>
@@ -172,7 +182,6 @@
         <p style="font-size:.75rem;color:var(--text3);margin-top:8px">Vista previa — máximo 10 filas mostradas.</p>
       </div>
 
-      <!-- Resultado final -->
       <div id="import-result" class="import-result" style="display:none"></div>
     </div>
 
@@ -193,6 +202,16 @@
     document.getElementById('clan-new').addEventListener('keydown',    e => { if(e.key==='Enter') addClan(); });
     document.getElementById('cohorte-new').addEventListener('keydown', e => { if(e.key==='Enter') addCohorte(); });
   });
+
+  // ── Helper spinner ────────────────────────────────
+  function setBtnLoading(btnId, textId, spinnerId, loading) {
+    const btn = document.getElementById(btnId);
+    const txt = document.getElementById(textId);
+    const sp  = document.getElementById(spinnerId);
+    if (btn) btn.disabled = loading;
+    if (txt) txt.style.display = loading ? 'none' : '';
+    if (sp)  sp.style.display  = loading ? ''     : 'none';
+  }
 
   async function loadPendingBadge() {
     try {
@@ -219,6 +238,7 @@
       renderClanes();
     } catch { document.getElementById('clan-list').innerHTML = '<li class="config-empty">Error al cargar</li>'; }
   }
+
   function renderClanes() {
     document.getElementById('clan-count').textContent = `${clanes.length} registro${clanes.length!==1?'s':''}`;
     if (!clanes.length) { document.getElementById('clan-list').innerHTML='<li class="config-empty">Sin clanes registrados</li>'; return; }
@@ -227,15 +247,16 @@
         <span class="item-label" id="clan-label-${c.id}">${c.nombre}</span>
         <div class="edit-inline" id="clan-edit-${c.id}">
           <input type="text" class="form-control" id="clan-edit-input-${c.id}" value="${c.nombre}" style="height:32px;font-size:.85rem">
-          <button class="btn-icon-sm" onclick="saveClan(${c.id})"><i class="bi bi-check-lg"></i></button>
-          <button class="btn-icon-sm" onclick="cancelEditClan(${c.id})"><i class="bi bi-x-lg"></i></button>
+          <button class="btn-icon-sm" id="clan-save-${c.id}" onclick="saveClan(${c.id})" title="Guardar"><i class="bi bi-check-lg"></i></button>
+          <button class="btn-icon-sm" onclick="cancelEditClan(${c.id})" title="Cancelar"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="actions" id="clan-actions-${c.id}" style="display:flex;gap:6px">
-          <button class="btn-icon-sm" onclick="editClan(${c.id})"><i class="bi bi-pencil"></i></button>
-          <button class="btn-icon-sm red" onclick="deleteClan(${c.id})"><i class="bi bi-trash3"></i></button>
+          <button class="btn-icon-sm" onclick="editClan(${c.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+          <button class="btn-icon-sm red" id="clan-del-${c.id}" onclick="deleteClan(${c.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>
         </div>
       </li>`).join('');
   }
+
   function editClan(id) {
     document.getElementById(`clan-label-${id}`).classList.add('hidden');
     document.getElementById(`clan-edit-${id}`).classList.add('active');
@@ -247,35 +268,54 @@
     document.getElementById(`clan-edit-${id}`).classList.remove('active');
     document.getElementById(`clan-actions-${id}`).style.display='flex';
   }
+
   async function saveClan(id) {
     const nombre = document.getElementById(`clan-edit-input-${id}`).value.trim();
     if (!nombre) return;
+    const btn = document.getElementById(`clan-save-${id}`);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner dark" style="width:11px;height:11px;border-width:2px"></span>';
     try {
       const r = await http.put(`/catalogs/clanes/${id}`, { nombre });
       if (!r.ok) { showToast((await r.json()).error,'error'); return; }
-      showToast('Clan actualizado','success'); loadClanes();
+      showToast('Clan actualizado ✓','success');
+      loadClanes();
     } catch { showToast('Error de conexión','error'); }
+    finally { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg"></i>'; }
   }
+
   async function addClan() {
     const nombre = document.getElementById('clan-new').value.trim();
     if (!nombre) return;
+    setBtnLoading('btn-add-clan','add-clan-text','add-clan-spinner', true);
+    document.getElementById('clan-new').disabled = true;
     try {
       const r = await http.post('/catalogs/clanes', { nombre });
       if (!r.ok) { showToast((await r.json()).error,'error'); return; }
-      document.getElementById('clan-new').value='';
-      showToast('Clan agregado','success'); loadClanes();
+      document.getElementById('clan-new').value = '';
+      showToast('Clan agregado ✓','success');
+      loadClanes();
     } catch { showToast('Error de conexión','error'); }
-  }
-  async function deleteClan(id) {
-    if (!confirm('¿Eliminar este clan?')) return;
-    try {
-      const r = await http.delete(`/catalogs/clanes/${id}`);
-      if (!r.ok) { showToast((await r.json()).error,'error'); return; }
-      showToast('Clan eliminado','success'); loadClanes();
-    } catch { showToast('Error de conexión','error'); }
+    finally {
+      setBtnLoading('btn-add-clan','add-clan-text','add-clan-spinner', false);
+      document.getElementById('clan-new').disabled = false;
+    }
   }
 
-  // ═══ COHORTES (INT) ════════════════════════════════════
+  async function deleteClan(id) {
+    if (!confirm('¿Eliminar este clan?')) return;
+    const btn = document.getElementById(`clan-del-${id}`);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner dark" style="width:11px;height:11px;border-width:2px"></span>';
+    try {
+      const r = await http.delete(`/catalogs/clanes/${id}`);
+      if (!r.ok) { showToast((await r.json()).error,'error'); btn.disabled=false; btn.innerHTML='<i class="bi bi-trash3"></i>'; return; }
+      showToast('Clan eliminado ✓','success');
+      loadClanes();
+    } catch { showToast('Error de conexión','error'); btn.disabled=false; btn.innerHTML='<i class="bi bi-trash3"></i>'; }
+  }
+
+  // ═══ COHORTES ══════════════════════════════════════════
   let cohortes = [];
   async function loadCohortes() {
     try {
@@ -284,6 +324,7 @@
       renderCohortes();
     } catch { document.getElementById('cohorte-list').innerHTML='<li class="config-empty">Error al cargar</li>'; }
   }
+
   function renderCohortes() {
     document.getElementById('cohorte-count').textContent = `${cohortes.length} registro${cohortes.length!==1?'s':''}`;
     if (!cohortes.length) { document.getElementById('cohorte-list').innerHTML='<li class="config-empty">Sin cohortes registradas</li>'; return; }
@@ -292,15 +333,16 @@
         <span class="item-label" id="cohorte-label-${c.id}">Cohorte ${c.numero}</span>
         <div class="edit-inline" id="cohorte-edit-${c.id}">
           <input type="number" class="form-control" id="cohorte-edit-input-${c.id}" value="${c.numero}" min="1" style="height:32px;font-size:.85rem;width:90px">
-          <button class="btn-icon-sm" onclick="saveCohorte(${c.id})"><i class="bi bi-check-lg"></i></button>
-          <button class="btn-icon-sm" onclick="cancelEditCohorte(${c.id})"><i class="bi bi-x-lg"></i></button>
+          <button class="btn-icon-sm" id="cohorte-save-${c.id}" onclick="saveCohorte(${c.id})" title="Guardar"><i class="bi bi-check-lg"></i></button>
+          <button class="btn-icon-sm" onclick="cancelEditCohorte(${c.id})" title="Cancelar"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="actions" id="cohorte-actions-${c.id}" style="display:flex;gap:6px">
-          <button class="btn-icon-sm" onclick="editCohorte(${c.id})"><i class="bi bi-pencil"></i></button>
-          <button class="btn-icon-sm red" onclick="deleteCohorte(${c.id})"><i class="bi bi-trash3"></i></button>
+          <button class="btn-icon-sm" onclick="editCohorte(${c.id})" title="Editar"><i class="bi bi-pencil"></i></button>
+          <button class="btn-icon-sm red" id="cohorte-del-${c.id}" onclick="deleteCohorte(${c.id})" title="Eliminar"><i class="bi bi-trash3"></i></button>
         </div>
       </li>`).join('');
   }
+
   function editCohorte(id) {
     document.getElementById(`cohorte-label-${id}`).classList.add('hidden');
     document.getElementById(`cohorte-edit-${id}`).classList.add('active');
@@ -312,46 +354,60 @@
     document.getElementById(`cohorte-edit-${id}`).classList.remove('active');
     document.getElementById(`cohorte-actions-${id}`).style.display='flex';
   }
+
   async function saveCohorte(id) {
     const numero = document.getElementById(`cohorte-edit-input-${id}`).value;
     if (!numero) return;
+    const btn = document.getElementById(`cohorte-save-${id}`);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner dark" style="width:11px;height:11px;border-width:2px"></span>';
     try {
       const r = await http.put(`/catalogs/cohortes/${id}`, { numero });
       if (!r.ok) { showToast((await r.json()).error,'error'); return; }
-      showToast('Cohorte actualizada','success'); loadCohortes();
+      showToast('Cohorte actualizada ✓','success');
+      loadCohortes();
     } catch { showToast('Error de conexión','error'); }
+    finally { btn.disabled=false; btn.innerHTML='<i class="bi bi-check-lg"></i>'; }
   }
+
   async function addCohorte() {
     const numero = document.getElementById('cohorte-new').value;
     if (!numero) return;
+    setBtnLoading('btn-add-cohorte','add-cohorte-text','add-cohorte-spinner', true);
+    document.getElementById('cohorte-new').disabled = true;
     try {
       const r = await http.post('/catalogs/cohortes', { numero });
       if (!r.ok) { showToast((await r.json()).error,'error'); return; }
-      document.getElementById('cohorte-new').value='';
-      showToast('Cohorte agregada','success'); loadCohortes();
+      document.getElementById('cohorte-new').value = '';
+      showToast('Cohorte agregada ✓','success');
+      loadCohortes();
     } catch { showToast('Error de conexión','error'); }
+    finally {
+      setBtnLoading('btn-add-cohorte','add-cohorte-text','add-cohorte-spinner', false);
+      document.getElementById('cohorte-new').disabled = false;
+    }
   }
+
   async function deleteCohorte(id) {
     if (!confirm('¿Eliminar esta cohorte?')) return;
+    const btn = document.getElementById(`cohorte-del-${id}`);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner dark" style="width:11px;height:11px;border-width:2px"></span>';
     try {
       const r = await http.delete(`/catalogs/cohortes/${id}`);
-      if (!r.ok) { showToast((await r.json()).error,'error'); return; }
-      showToast('Cohorte eliminada','success'); loadCohortes();
-    } catch { showToast('Error de conexión','error'); }
+      if (!r.ok) { showToast((await r.json()).error,'error'); btn.disabled=false; btn.innerHTML='<i class="bi bi-trash3"></i>'; return; }
+      showToast('Cohorte eliminada ✓','success');
+      loadCohortes();
+    } catch { showToast('Error de conexión','error'); btn.disabled=false; btn.innerHTML='<i class="bi bi-trash3"></i>'; }
   }
 
-  // ═══ CARGA MASIVA CSV — Preview + Confirmación ════════
+  // ═══ CARGA MASIVA CSV ══════════════════════════════════
   const REQUIRED_COLS = ['nombre','apellido','documento','correo','password'];
   let csvFile = null;
-  let csvParsed = null; // { headers, rows }
+  let csvParsed = null;
 
-  function handleDrag(e) {
-    e.preventDefault();
-    document.getElementById('bulk-card').classList.add('drag-over');
-  }
-  function handleDragLeave() {
-    document.getElementById('bulk-card').classList.remove('drag-over');
-  }
+  function handleDrag(e) { e.preventDefault(); document.getElementById('bulk-card').classList.add('drag-over'); }
+  function handleDragLeave() { document.getElementById('bulk-card').classList.remove('drag-over'); }
   function handleDrop(e) {
     e.preventDefault();
     document.getElementById('bulk-card').classList.remove('drag-over');
@@ -377,19 +433,14 @@
   }
 
   function loadCsvPreview(file) {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      showToast('Solo se aceptan archivos .csv', 'error'); return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('El archivo supera 5 MB', 'error'); return;
-    }
+    if (!file.name.toLowerCase().endsWith('.csv')) { showToast('Solo se aceptan archivos .csv', 'error'); return; }
+    if (file.size > 5 * 1024 * 1024) { showToast('El archivo supera 5 MB', 'error'); return; }
     csvFile = file;
     const reader = new FileReader();
     reader.onload = e => {
       const text  = e.target.result;
       const lines = text.split('\n').map(l => l.replace(/\r/,'')).filter(l => l.trim());
       if (lines.length < 2) { showToast('El CSV está vacío o no tiene datos', 'error'); return; }
-
       const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
       const rows    = lines.slice(1).map(l => {
         const cols = parseCSVLine(l);
@@ -397,7 +448,6 @@
         headers.forEach((h, i) => { row[h] = (cols[i] || '').trim(); });
         return row;
       });
-
       csvParsed = { headers, rows };
       showPreview(file.name, headers, rows);
     };
@@ -405,18 +455,13 @@
   }
 
   function showPreview(filename, headers, rows) {
-    // Verificar columnas obligatorias
     const missing = REQUIRED_COLS.filter(c => !headers.includes(c));
-
     document.getElementById('step-upload').style.display  = 'none';
     document.getElementById('step-preview').style.display = 'block';
     document.getElementById('import-result').style.display= 'none';
-
     document.getElementById('preview-title').textContent = `${filename}`;
-    document.getElementById('preview-sub').textContent   =
-      `${rows.length} fila${rows.length!==1?'s':''} detectadas · ${headers.length} columnas`;
+    document.getElementById('preview-sub').textContent   = `${rows.length} fila${rows.length!==1?'s':''} detectadas · ${headers.length} columnas`;
 
-    // Errores de validación
     const errEl = document.getElementById('preview-errors');
     if (missing.length) {
       errEl.innerHTML = `<div style="background:var(--danger-bg,#fee2e2);color:#991b1b;border-radius:8px;padding:10px 14px;font-size:.82rem;border-left:4px solid #ef4444">
@@ -430,8 +475,7 @@
       document.getElementById('btn-confirm').disabled = false;
     }
 
-    // Encabezados de preview — destacar obligatorios
-    const displayCols = headers.slice(0, 8); // Máx 8 cols en preview
+    const displayCols = headers.slice(0, 8);
     document.getElementById('preview-head').innerHTML = `<tr>
       <th style="padding:7px 10px;font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em">#</th>
       ${displayCols.map(h => {
@@ -442,7 +486,6 @@
       }).join('')}
     </tr>`;
 
-    // Filas de preview (máx 10)
     const previewRows = rows.slice(0, 10);
     document.getElementById('preview-body').innerHTML = previewRows.map((row, i) => `
       <tr style="border-top:1px solid var(--border)">
@@ -464,13 +507,9 @@
 
   async function confirmImport() {
     if (!csvFile) return;
-    const btn = document.getElementById('btn-confirm');
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block"></div> Importando...';
-
+    setBtnLoading('btn-confirm','confirm-text','confirm-spinner', true);
     const fd = new FormData();
     fd.append('csv', csvFile);
-
     try {
       const token = localStorage.getItem('nova_token');
       const r = await fetch('/api/users/bulk-import', {
@@ -479,21 +518,17 @@
         body: fd
       });
       const data = await r.json();
-
       if (!r.ok) {
         showToast(data.error || 'Error al procesar CSV', 'error');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-upload"></i> Cargar datos';
+        setBtnLoading('btn-confirm','confirm-text','confirm-spinner', false);
         return;
       }
-
       document.getElementById('step-preview').style.display = 'none';
       showImportResult(data);
       showToast(`Importación completada: ${data.created} usuario${data.created!==1?'s':''} creado${data.created!==1?'s':''}`, 'success');
     } catch {
       showToast('Error de conexión', 'error');
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-upload"></i> Cargar datos';
+      setBtnLoading('btn-confirm','confirm-text','confirm-spinner', false);
     }
   }
 
