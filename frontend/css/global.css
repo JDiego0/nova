@@ -481,16 +481,41 @@ tbody td { padding: 13px 16px; color: var(--text2); vertical-align: middle; }
 
 /* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
+  /* ── Sidebar mobile ── */
+  .sidebar { transform: translateX(-100%); z-index: 300; }
   .sidebar.mobile-open { transform: translateX(0); }
   .main-layout, .main-layout.collapsed { margin-left: 0; }
+
+  /* ── Overlay para cerrar sidebar al tocar fuera ── */
+  .sidebar-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 299;
+    backdrop-filter: blur(1px);
+  }
+  .sidebar-overlay.active { display: block; }
+
+  /* ── Theme toggle vertical en sidebar mobile ── */
+  .sidebar .theme-toggle {
+    flex-direction: column;
+    border-radius: 14px;
+    width: 38px;
+    padding: 4px;
+  }
+
+  /* ── Layout ── */
   .page-content { padding: 16px; }
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-title { font-size: .95rem; }
   .stat-card { padding: 14px; }
   .stat-value { font-size: 1.4rem; }
   .card-body { padding: 14px !important; }
-  .table-wrap { overflow-x: auto; }        /* fallback para tablas no-fixed */
+
+  /* ── Tablas con scroll horizontal en mobile ── */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ── Modales ── */
   .modal { width: 96%; max-height: 92vh; }
   .modal-body { padding: 16px; }
   .form-grid { grid-template-columns: 1fr !important; }

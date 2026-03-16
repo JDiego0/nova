@@ -34,7 +34,7 @@
     .actions-cell       { display:flex;gap:4px;flex-wrap:nowrap;align-items:center; }
 
     /* ── Tabla sin scroll horizontal ────────────────── */
-    .table-wrap         { overflow-x:hidden; border-radius:12px; border:1px solid var(--border); width:100%; }
+    .table-wrap         { overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:12px; border:1px solid var(--border); width:100%; }
     .users-table        { width:100%; table-layout:fixed; border-collapse:collapse; font-size:.85rem; }
     .users-table thead th { padding:10px 12px; text-align:left; font-weight:600; font-size:.75rem; color:var(--text3); text-transform:uppercase; letter-spacing:.04em; background:var(--surface2); border-bottom:1px solid var(--border); overflow:hidden; }
     .users-table tbody tr { border-bottom:1px solid var(--border); transition:background var(--trans); }

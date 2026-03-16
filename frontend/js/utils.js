@@ -110,14 +110,41 @@ function initSidebar() {
   if (!sidebar) return;
   const stored = localStorage.getItem('nova_sidebar');
   if (stored === 'collapsed') { sidebar.classList.add('collapsed'); layout?.classList.add('collapsed'); }
+
+  // Crear overlay para cerrar sidebar en mobile al tocar fuera
+  if (!document.getElementById('sidebar-overlay')) {
+    const overlay = document.createElement('div');
+    overlay.id = 'sidebar-overlay';
+    overlay.className = 'sidebar-overlay';
+    overlay.addEventListener('click', () => closeMobileSidebar());
+    document.body.appendChild(overlay);
+  }
 }
+
+function closeMobileSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar?.classList.remove('mobile-open');
+  overlay?.classList.remove('active');
+}
+
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const layout  = document.getElementById('main-layout');
+  const overlay = document.getElementById('sidebar-overlay');
 
   if (window.innerWidth <= 768) {
-    sidebar?.classList.toggle('mobile-open');
+    // Mobile: abrir/cerrar con overlay
+    const isOpen = sidebar?.classList.contains('mobile-open');
+    if (isOpen) {
+      sidebar?.classList.remove('mobile-open');
+      overlay?.classList.remove('active');
+    } else {
+      sidebar?.classList.add('mobile-open');
+      overlay?.classList.add('active');
+    }
   } else {
+    // Desktop: comportamiento collapsed original
     sidebar?.classList.toggle('collapsed');
     layout?.classList.toggle('collapsed');
     localStorage.setItem('nova_sidebar', sidebar?.classList.contains('collapsed') ? 'collapsed' : '');
