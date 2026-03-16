@@ -114,9 +114,14 @@ function initSidebar() {
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const layout  = document.getElementById('main-layout');
-  sidebar?.classList.toggle('collapsed');
-  layout?.classList.toggle('collapsed');
-  localStorage.setItem('nova_sidebar', sidebar?.classList.contains('collapsed') ? 'collapsed' : '');
+
+  if (window.innerWidth <= 768) {
+    sidebar?.classList.toggle('mobile-open');
+  } else {
+    sidebar?.classList.toggle('collapsed');
+    layout?.classList.toggle('collapsed');
+    localStorage.setItem('nova_sidebar', sidebar?.classList.contains('collapsed') ? 'collapsed' : '');
+  }
 }
 
 // ── User info in topbar ───────────────────────────────
