@@ -39,7 +39,7 @@ exports.getAll = async (req, res) => {
     sql += ' ORDER BY n.created_at DESC';
     const [rows] = await pool.query(sql, params);
     res.json({ ok: true, data: rows });
-  } catch (err) { res.status(500).json({ ok: false, message: err.message }); }
+  } catch (err) { res.status(500).json({ ok: false, message: 'Error interno del servidor' }); }
 };
 
 exports.getOne = async (req, res) => {
@@ -47,7 +47,7 @@ exports.getOne = async (req, res) => {
     const [rows] = await pool.query(SELECT + ' WHERE n.id=?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ ok: false, message: 'No encontrada' });
     res.json({ ok: true, data: rows[0] });
-  } catch (err) { res.status(500).json({ ok: false, message: err.message }); }
+  } catch (err) { res.status(500).json({ ok: false, message: 'Error interno del servidor' }); }
 };
 
 exports.getMias = async (req, res) => {
@@ -57,7 +57,7 @@ exports.getMias = async (req, res) => {
       [req.user.id]
     );
     res.json({ ok: true, data: rows });
-  } catch (err) { res.status(500).json({ ok: false, message: err.message }); }
+  } catch (err) { res.status(500).json({ ok: false, message: 'Error interno del servidor' }); }
 };
 
 async function aiPrioridad(reason, excuse_text) {
@@ -101,6 +101,9 @@ exports.create = async (req, res) => {
     const { date_of_absence, reason, excuse_text } = req.body;
     const student_id = req.body.student_id || req.user?.id;
 
+    if (reason && reason.length > 200) return res.status(400).json({ ok: false, message: "El tipo de solicitud es demasiado largo (max 200 caracteres)" });
+    if (excuse_text && excuse_text.length > 2000) return res.status(400).json({ ok: false, message: "La descripcion no puede superar 2000 caracteres" });
+
     if (!student_id || !date_of_absence || !reason)
       return res.status(400).json({ ok: false, message: 'Faltan campos obligatorios (fecha, motivo)' });
 
@@ -134,13 +137,14 @@ exports.create = async (req, res) => {
       ia_activa: !!groq,
     });
   } catch (err) {
-    res.status(500).json({ ok: false, message: err.message });
+    res.status(500).json({ ok: false, message: 'Error interno del servidor' });
   }
 };
 
 exports.updateStatus = async (req, res) => {
   try {
     const { status, observacion } = req.body;
+    if (observacion && observacion.length > 1000) return res.status(400).json({ ok: false, message: "La observacion no puede superar 1000 caracteres" });
     const allowed = ['pending','accepted','rejected'];
     if (!allowed.includes(status))
       return res.status(400).json({ ok: false, message: `Estado invalido. Permitidos: ${allowed.join(', ')}` });
@@ -163,7 +167,7 @@ exports.updateStatus = async (req, res) => {
     await audit('UPDATE_NOVEDAD_STATUS', 'novedad', req.params.id, req.user, { status, observacion }, req.ip);
     res.json({ ok: true, message: `Estado actualizado a "${status}"` });
   } catch (err) {
-    res.status(500).json({ ok: false, message: err.message });
+    res.status(500).json({ ok: false, message: 'Error interno del servidor' });
   }
 };
 
@@ -173,7 +177,7 @@ exports.remove = async (req, res) => {
     if (!result.affectedRows) return res.status(404).json({ ok: false, message: 'No encontrada' });
     await audit('DELETE_NOVEDAD', 'novedad', req.params.id, req.user, null, req.ip);
     res.json({ ok: true, message: 'Novedad eliminada' });
-  } catch (err) { res.status(500).json({ ok: false, message: err.message }); }
+  } catch (err) { res.status(500).json({ ok: false, message: 'Error interno del servidor' }); }
 };
 
 exports.getStats = async (req, res) => {
@@ -183,7 +187,7 @@ exports.getStats = async (req, res) => {
     const [[{ accepted }]] = await pool.query("SELECT COUNT(*) AS accepted FROM novedades WHERE status='accepted'");
     const [[{ rejected }]] = await pool.query("SELECT COUNT(*) AS rejected FROM novedades WHERE status='rejected'");
     res.json({ ok: true, data: { total, pending, accepted, rejected } });
-  } catch (err) { res.status(500).json({ ok: false, message: err.message }); }
+  } catch (err) { res.status(500).json({ ok: false, message: 'Error interno del servidor' }); }
 };
 
 exports.aiAnalysis = async (req, res) => {
@@ -240,7 +244,7 @@ INSTRUCCIONES
 Analiza con criterio equilibrado:
 
 1. DOCUMENTACION Y DESCRIPCION: Si el usuario adjunto un documento o dio una descripcion coherente, es un factor positivo. No penalices la ausencia de adjunto en situaciones donde no siempre es posible tenerlo (emergencias, imprevistos).
-2. TIPO DE SOLICITUD: Evalua si el motivo es razonable para el contexto de la organizacion. La mayoria de solicitudes tienen justificacion valida.
+2. TIPO DE SOLICITUD: Evalua si el motivo es razonable para el contexto de un bootcamp. La mayoria de solicitudes tienen justificacion valida.
 3. TEMPORALIDAD: La retroactividad no es automaticamente negativa. Las emergencias y situaciones imprevistas justifican solicitudes tardias. Considera anticipacion insuficiente solo si la solicitud claramente pudo hacerse antes.
 4. HISTORIAL: Un historial con pocas solicitudes es neutro o positivo. No interpretes negativamente el numero de solicitudes si no hay un patron claro de abuso.
 5. COHERENCIA: Verifica que el tipo de solicitud, la descripcion y la urgencia sean consistentes. Las inconsistencias reales son la razon principal para alertar.
@@ -297,6 +301,6 @@ Responde UNICAMENTE con este JSON exacto (sin texto adicional, sin markdown):
       }
     });
   } catch (err) {
-    res.status(500).json({ ok: false, message: err.message });
+    res.status(500).json({ ok: false, message: 'Error interno del servidor' });
   }
 };

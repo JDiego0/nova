@@ -24,13 +24,16 @@ const SELECT = `
   LEFT JOIN cohorte         co ON u.cohorte_id        = co.id
 `;
 
-const fmt = u => ({
-  ...u,
-  id: String(u.id),
-  // alias convenientes para el frontend
-  corte: u.cohorte_numero !== null && u.cohorte_numero !== undefined
-    ? `Cohorte ${u.cohorte_numero}` : null,
-});
+// ── Excluye campos sensibles de todas las respuestas ──────────────
+const fmt = u => {
+  const { password, reset_token, reset_token_expires, ...safe } = u;
+  return {
+    ...safe,
+    id: String(u.id),
+    corte: u.cohorte_numero !== null && u.cohorte_numero !== undefined
+      ? `Cohorte ${u.cohorte_numero}` : null,
+  };
+};
 
 // ─── GET ALL ───────────────────────────────────────────────────────
 exports.getAll = async (req, res) => {
@@ -48,7 +51,7 @@ exports.getAll = async (req, res) => {
     sql += ' ORDER BY u.id';
     const [rows] = await pool.query(sql, params);
     res.json(rows.map(fmt));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Error interno del servidor' }); }
 };
 
 // ─── GET ONE ───────────────────────────────────────────────────────
@@ -57,7 +60,7 @@ exports.getOne = async (req, res) => {
     const [[row]] = await pool.query(SELECT + ' WHERE u.id=?', [req.params.id]);
     if (!row) return res.status(404).json({ error: 'No encontrado' });
     res.json(fmt(row));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Error interno del servidor' }); }
 };
 
 // ─── CREATE ────────────────────────────────────────────────────────
@@ -66,16 +69,28 @@ exports.create = async (req, res) => {
   const required = ['nombre','apellido','documento','correo','password','role'];
   for (const f of required)
     if (!b[f]) return res.status(400).json({ error: `Campo '${f}' requerido` });
+
+  // Validacion de formato de correo
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(b.correo))
+    return res.status(400).json({ error: 'El correo no tiene un formato valido' });
+
+  // Validacion de longitudes maximas
+  if (b.nombre.length > 100 || b.apellido.length > 100)
+    return res.status(400).json({ error: 'Nombre o apellido demasiado largo (max 100 caracteres)' });
+  if (b.password.length < 6)
+    return res.status(400).json({ error: 'La contrasena debe tener al menos 6 caracteres' });
+
   try {
     const [[exists]] = await pool.query(
       'SELECT id FROM usuarios WHERE correo=? OR documento=?', [b.correo, b.documento]);
     if (exists) return res.status(409).json({ error: 'Correo o documento ya registrado' });
 
     const [[role]]   = await pool.query('SELECT id FROM roles WHERE nombre=?', [b.role]);
-    if (!role) return res.status(400).json({ error: 'Rol inválido' });
+    if (!role) return res.status(400).json({ error: 'Rol invalido' });
 
     const [[estado]] = await pool.query('SELECT id FROM estados WHERE nombre=?', [b.estado||'Activo']);
-    if (!estado) return res.status(400).json({ error: 'Estado inválido' });
+    if (!estado) return res.status(400).json({ error: 'Estado invalido' });
 
     const [[horario]] = b.horario
       ? await pool.query('SELECT id FROM horarios WHERE nombre=?', [b.horario])
@@ -85,14 +100,12 @@ exports.create = async (req, res) => {
       ? await pool.query('SELECT id FROM tipos_documento WHERE nombre=?', [b.tipo_documento])
       : [[null]];
 
-    // clan_id — buscar por nombre
     let clanId = null;
     if (b.clan) {
       const [[cl]] = await pool.query('SELECT id FROM clan WHERE nombre=?', [b.clan]);
       clanId = cl?.id || null;
     }
 
-    // cohorte_id — buscar por número (b.cohorte puede ser "1", "2", etc. o "Cohorte 1")
     let cohorteId = null;
     if (b.cohorte) {
       const num = parseInt(String(b.cohorte).replace(/\D/g, ''), 10);
@@ -122,7 +135,7 @@ exports.create = async (req, res) => {
     const [[user]] = await pool.query(SELECT + ' WHERE u.id=?', [result.insertId]);
     await audit('CREATE_USER', 'usuario', result.insertId, req.user, { correo: b.correo }, req.ip);
     res.status(201).json(fmt(user));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Error interno del servidor' }); }
 };
 
 // ─── UPDATE ────────────────────────────────────────────────────────
@@ -133,7 +146,16 @@ exports.update = async (req, res) => {
     const simple = ['nombre','apellido','documento','correo','telefono','observaciones'];
     simple.forEach(f => { if (f in b) { sets.push(`${f}=?`); vals.push(b[f]||null); } });
 
+    // Validacion de correo si se esta actualizando
+    if (b.correo) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(b.correo))
+        return res.status(400).json({ error: 'El correo no tiene un formato valido' });
+    }
+
     if (b.password) {
+      if (b.password.length < 6)
+        return res.status(400).json({ error: 'La contrasena debe tener al menos 6 caracteres' });
       const hash = await bcrypt.hash(b.password, 12);
       sets.push('password=?'); vals.push(hash);
     }
@@ -186,7 +208,6 @@ exports.update = async (req, res) => {
     if (!sets.length) return res.status(400).json({ error: 'Nada que actualizar' });
     vals.push(req.params.id);
 
-    // Obtener estado anterior para detectar activación
     const [[prev]] = await pool.query(
       'SELECT u.correo, u.nombre, e.nombre AS estado_actual FROM usuarios u JOIN estados e ON u.estado_id=e.id WHERE u.id=?',
       [req.params.id]
@@ -195,7 +216,6 @@ exports.update = async (req, res) => {
     await pool.query(`UPDATE usuarios SET ${sets.join(',')} WHERE id=?`, vals);
     const [[user]] = await pool.query(SELECT + ' WHERE u.id=?', [req.params.id]);
 
-    // Enviar correo si el admin acaba de activar la cuenta
     if (b.estado === 'Activo' && prev?.estado_actual !== 'Activo') {
       try {
         const { sendMail } = require('../config/mailer');
@@ -224,7 +244,7 @@ exports.update = async (req, res) => {
 
     await audit('UPDATE_USER', 'usuario', req.params.id, req.user, b, req.ip);
     res.json(fmt(user));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Error interno del servidor' }); }
 };
 
 // ─── DELETE ────────────────────────────────────────────────────────
@@ -234,7 +254,7 @@ exports.remove = async (req, res) => {
     if (!r.affectedRows) return res.status(404).json({ error: 'No encontrado' });
     await audit('DELETE_USER', 'usuario', req.params.id, req.user, null, req.ip);
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Error interno del servidor' }); }
 };
 
 // ─── STATS ─────────────────────────────────────────────────────────
@@ -246,7 +266,7 @@ exports.getStats = async (req, res) => {
     const [[{ inactivos }]] = await pool.query(
       "SELECT COUNT(*) AS inactivos FROM usuarios u JOIN estados e ON u.estado_id=e.id WHERE e.nombre='Inactivo'");
     res.json({ total, activos, inactivos });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Error interno del servidor' }); }
 };
 
 // ─── BULK IMPORT CSV ───────────────────────────────────────────────
@@ -254,25 +274,30 @@ exports.bulkImport = async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Archivo CSV requerido' });
   const csv = req.file.buffer.toString('utf8');
   const lines = csv.split('\n').map(l => l.trim()).filter(Boolean);
-  if (lines.length < 2) return res.status(400).json({ error: 'CSV vacío o sin datos' });
+  if (lines.length < 2) return res.status(400).json({ error: 'CSV vacio o sin datos' });
 
   const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g,''));
-  // Campos esperados (mínimo): nombre, apellido, documento, correo, password
   const needed = ['nombre','apellido','documento','correo','password'];
   for (const n of needed)
     if (!header.includes(n)) return res.status(400).json({ error: `Columna requerida: ${n}` });
 
   const results = { created: 0, skipped: 0, errors: [] };
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   for (let i = 1; i < lines.length; i++) {
-    // CSV parse simple: split por coma pero respetando comillas
-    const cols = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g) || [];
+    const cols = lines[i].match(/(\".*?\"|[^,]+)(?=,|$)/g) || [];
     const row  = {};
     header.forEach((h, idx) => { row[h] = (cols[idx]||'').replace(/^"|"$/g,'').trim(); });
 
     if (!row.nombre || !row.apellido || !row.documento || !row.correo || !row.password) {
-      results.errors.push({ fila: i+1, error: 'Campos requeridos vacíos' }); continue;
+      results.errors.push({ fila: i+1, error: 'Campos requeridos vacios' }); continue;
     }
+
+    // Validar formato de correo en importacion masiva
+    if (!emailRegex.test(row.correo)) {
+      results.errors.push({ fila: i+1, error: `Correo invalido: ${row.correo}` }); continue;
+    }
+
     try {
       const [[exists]] = await pool.query(
         'SELECT id FROM usuarios WHERE correo=? OR documento=?', [row.correo, row.documento]);
@@ -303,7 +328,6 @@ exports.bulkImport = async (req, res) => {
         }
       }
 
-      // La contraseña en el CSV puede venir ya hasheada (empieza con $2a$) o en plano
       const isHashed = /^\$2[ab]\$\d+\$/.test(row.password);
       const hash = isHashed ? row.password : await bcrypt.hash(row.password, 12);
 

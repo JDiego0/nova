@@ -6,12 +6,14 @@
 
 **Plataforma web para gestionar ausencias, permisos e incapacidades del personal**
 
+![Version](https://img.shields.io/badge/Version-1.0.0-6d28d9?style=flat-square)
 ![Node.js](https://img.shields.io/badge/Node.js-18.x-339933?style=flat-square&logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.19-000000?style=flat-square&logo=express&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7+-4479A1?style=flat-square&logo=mysql&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square&logo=mongodb&logoColor=white)
 ![Render](https://img.shields.io/badge/Render-Starter-46E3B7?style=flat-square&logo=render&logoColor=white)
 ![Gmail](https://img.shields.io/badge/Gmail-SMTP-EA4335?style=flat-square&logo=gmail&logoColor=white)
+![Security](https://img.shields.io/badge/Security-Helmet%20%2B%20Rate%20Limit-green?style=flat-square)
 
 </div>
 
@@ -22,29 +24,30 @@
 1. [Descripción](#-descripción)
 2. [Funcionalidades](#-funcionalidades)
 3. [Stack tecnológico](#-stack-tecnológico)
-4. [Requisitos previos](#-requisitos-previos)
-5. [Instalación](#-instalación)
-6. [Variables de entorno](#️-variables-de-entorno)
-7. [Base de datos](#️-base-de-datos)
-8. [Ejecución](#️-ejecución)
-9. [Dependencias](#-dependencias)
-10. [Roles y permisos](#-roles-y-permisos)
-11. [Carga masiva de usuarios](#-carga-masiva-de-usuarios)
-12. [Servicios externos](#-servicios-externos)
-13. [Despliegue en Render](#️-despliegue-en-render)
-14. [Credenciales iniciales](#-credenciales-iniciales)
-15. [Estructura del proyecto](#-estructura-del-proyecto)
-16. [Solución de problemas](#-solución-de-problemas)
+4. [Seguridad](#-seguridad)
+5. [Requisitos previos](#-requisitos-previos)
+6. [Instalación](#-instalación)
+7. [Variables de entorno](#️-variables-de-entorno)
+8. [Base de datos](#️-base-de-datos)
+9. [Ejecución](#️-ejecución)
+10. [Dependencias](#-dependencias)
+11. [Roles y permisos](#-roles-y-permisos)
+12. [Carga masiva de usuarios](#-carga-masiva-de-usuarios)
+13. [Servicios externos](#-servicios-externos)
+14. [Despliegue en Render](#️-despliegue-en-render)
+15. [Credenciales iniciales](#-credenciales-iniciales)
+16. [Estructura del proyecto](#-estructura-del-proyecto)
+17. [Solución de problemas](#-solución-de-problemas)
 
 ---
 
 ## 📋 Descripción
 
-NOVA es una aplicación web **full-stack** que reemplaza procesos informales de gestión de ausencias por un sistema centralizado, trazable y con inteligencia artificial incorporada.
+NOVA v1.0 es una plataforma web **full-stack** lanzada en 2026 para la gestión digital de ausencias, permisos e incapacidades del personal. Reemplaza procesos informales (mensajes de WhatsApp, correos sin registro, hojas de cálculo) por un sistema centralizado, trazable, con inteligencia artificial incorporada y medidas de seguridad que protegen los datos del personal.
 
-Permite a los **usuarios** registrar solicitudes de ausencia con documentos adjuntos, y a los **administradores** revisarlas con apoyo de IA, mientras el sistema notifica automáticamente a todos los involucrados por email a cualquier correo del mundo.
+Permite a los **usuarios** registrar solicitudes con documentos adjuntos y a los **administradores** revisarlas con apoyo de IA, mientras el sistema notifica automáticamente a cualquier correo del mundo.
 
-> **Nota sobre el despliegue:** NOVA requiere el plan **Starter ($7/mes)** de Render para que el envío de emails via SMTP funcione correctamente. El plan gratuito bloquea los puertos SMTP (587 y 465).
+> **Plataforma:** Render Starter ($7/mes) — necesario para SMTP y servidor siempre activo.
 
 ---
 
@@ -52,27 +55,20 @@ Permite a los **usuarios** registrar solicitudes de ausencia con documentos adju
 
 ### Panel del Usuario
 - Registrar solicitudes: incapacidad médica, calamidad doméstica, permiso, constancia de entrenamiento, solicitud de egresado
-- Adjuntar documento de soporte (imagen o PDF, máx. 10 MB) con drag-and-drop
-- Ver historial de solicitudes con estado actualizado
-- Recibir notificaciones por email en cada cambio de estado
-- Recuperación de contraseña con enlace seguro por email
+- Adjuntar documento (imagen o PDF, máx. 10 MB) con drag-and-drop
+- Ver historial con estado y observación del administrador
+- Recibir emails automáticos en cada cambio de estado
+- Recuperación de contraseña con enlace seguro de 1 hora
 
 ### Panel del Administrador
-- Dashboard con estadísticas en tiempo real (total, pendientes, aprobadas, rechazadas)
-- Listado con filtros por estado y búsqueda full-text
-- Ver detalle completo de cada solicitud incluyendo adjunto
-- **Análisis IA** bajo demanda: recomendación APROBAR/RECHAZAR/REVISAR, confianza 1-10, retroactividad, historial del usuario, observación sugerida
-- Prioridad asignada automáticamente por IA al crear la novedad (Alta / Media / Baja)
-- Gestión completa de usuarios: crear, editar, activar, desactivar, eliminar
-- Importación masiva vía CSV con vista previa y validación
-- Administración de catálogos: clanes y cohortes
-- Historial de auditoría de todas las acciones
-
-### General
-- JWT stateless con expiración configurable
-- Recuperación de contraseña por email con token seguro de 1 hora
-- Light Mode / Dark Mode persistente por usuario
-- Responsive — accesible desde cualquier dispositivo
+- Dashboard con estadísticas en tiempo real
+- Filtros por estado y búsqueda full-text
+- **Análisis IA** (LLaMA 3.3 70B): recomendación, confianza, retroactividad, historial, observación sugerida
+- Prioridad automática al crear cada novedad (Alta / Media / Baja)
+- CRUD completo de usuarios con validación de seguridad
+- Importación masiva CSV con validación de formato por fila
+- Administración de clanes y cohortes
+- Historial de auditoría completo
 
 ---
 
@@ -80,18 +76,48 @@ Permite a los **usuarios** registrar solicitudes de ausencia con documentos adju
 
 | Capa | Tecnología | Propósito |
 |------|-----------|-----------|
-| Runtime | Node.js 18.x | Entorno de ejecución del servidor |
-| Framework | Express.js 4.19 | API REST + archivos estáticos del frontend |
-| Autenticación | JSON Web Tokens | Sesiones stateless firmadas con HS256 |
-| Hashing | bcryptjs | Hash seguro de contraseñas (cost factor 12) |
-| BD principal | MySQL 5.7+ | Datos relacionales transaccionales |
-| BD auditoría | MongoDB Atlas | Historial de acciones (opcional) |
-| Email | Nodemailer + SMTP Gmail | Notificaciones a cualquier correo del mundo |
-| Archivos | Cloudinary | Avatares y adjuntos de novedades |
-| IA | Groq SDK — LLaMA 3.3 70B | Prioridad automática y análisis de novedades |
-| Frontend | HTML5 / CSS3 / JS vanilla | Sin framework, SPA manual |
-| Iconos | Bootstrap Icons 1.11.3 | Vía CDN |
-| Despliegue | Render Starter | PaaS con SMTP habilitado y auto-deploy |
+| Runtime | Node.js 18.x | Entorno de ejecución |
+| Framework | Express.js 4.19 | API REST + archivos estáticos |
+| Autenticación | JWT (HS256) | Sesiones stateless |
+| Hashing | bcryptjs (cost 12) | Hash seguro de contraseñas |
+| **Seguridad HTTP** | **helmet** | **7 headers de protección** |
+| **Rate limiting** | **express-rate-limit** | **Protección fuerza bruta** |
+| BD principal | MySQL 5.7+ | Datos relacionales |
+| BD auditoría | MongoDB Atlas | Historial de acciones |
+| Email | Nodemailer + SMTP Gmail | Envío a cualquier correo |
+| Archivos | Cloudinary | Avatares y adjuntos |
+| IA | Groq — LLaMA 3.3 70B | Prioridad y análisis |
+| Frontend | HTML5/CSS3/JS vanilla | Sin framework |
+| Despliegue | Render Starter | PaaS con SMTP habilitado |
+
+---
+
+## 🔒 Seguridad
+
+NOVA v1.0 implementa las siguientes medidas de seguridad:
+
+### Headers HTTP (helmet)
+Protección automática con 7 headers en todas las respuestas: `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security`, `X-XSS-Protection` y otros.
+
+### Rate Limiting por endpoint
+
+| Endpoint | Límite | Protege contra |
+|----------|--------|----------------|
+| POST /api/auth/login | 10 intentos / 15 min | Fuerza bruta de contraseñas |
+| POST /api/auth/register | 10 intentos / 15 min | Spam de cuentas |
+| POST /api/auth/forgot-password | 5 intentos / 15 min | Abuso de emails y enumeración |
+| POST /api/auth/reset-password | 5 intentos / 15 min | Fuerza bruta de tokens |
+| GET/POST /api/* (general) | 200 req / 10 min | Scraping masivo |
+
+### Protección de datos
+- Contraseñas hasheadas con bcryptjs — nunca en texto plano
+- Campos `password`, `reset_token` y `reset_token_expires` excluidos de **todas** las respuestas de la API
+- Mensajes de error genéricos al cliente — sin detalles internos del servidor
+- Tokens de recuperación con 256 bits de entropía criptográfica
+- Validación de formato de correo en todos los endpoints de entrada
+
+### Protección contra enumeración
+El endpoint `forgot-password` devuelve el mismo mensaje si el correo existe o no, evitando que se descubran correos registrados en el sistema.
 
 ---
 
@@ -112,7 +138,7 @@ Permite a los **usuarios** registrar solicitudes de ausencia con documentos adju
 # 1. Descomprimir el proyecto
 unzip nova.zip && cd nova
 
-# 2. Instalar dependencias
+# 2. Instalar dependencias (incluye helmet y express-rate-limit)
 cd backend && npm install
 
 # 3. Crear archivo de configuración
@@ -123,39 +149,37 @@ cp .env.example .env
 
 ## ⚙️ Variables de entorno
 
-Edita `backend/.env` con tus valores. Los campos marcados con `*` son **obligatorios**.
-
 ```env
 # ── Servidor ──────────────────────────────────────
 PORT=3000                              # *
 
 # ── JWT ───────────────────────────────────────────
-JWT_SECRET=cambia_esto_aleatorio_largo # * (openssl rand -hex 32)
+JWT_SECRET=clave_aleatoria_larga       # * (openssl rand -hex 32)
 JWT_EXPIRES_IN=7d
 
 # ── MySQL ─────────────────────────────────────────
 DB_HOST=localhost                      # *
 DB_PORT=3306
 DB_USER=root                           # *
-DB_PASSWORD=tu_password_mysql          # *
+DB_PASSWORD=tu_password                # *
 DB_NAME=nova                           # *
 
-# ── MongoDB Atlas (opcional — auditoría) ──────────
+# ── MongoDB Atlas (opcional) ──────────────────────
 MONGO_URI=mongodb+srv://usuario:pass@cluster.mongodb.net/nova
 
-# ── Cloudinary (opcional — archivos adjuntos) ─────
+# ── Cloudinary (opcional) ─────────────────────────
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
-# ── Gmail SMTP (opcional — envío de emails) ───────
+# ── Gmail SMTP (opcional) ─────────────────────────
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=tucorreo@gmail.com
-SMTP_PASS=xxxx xxxx xxxx xxxx          # Contraseña de aplicación Google (16 chars)
+SMTP_PASS=xxxx xxxx xxxx xxxx         # Contraseña de app Google (16 chars)
 SMTP_FROM=NOVA <tucorreo@gmail.com>
 
-# ── Groq IA (opcional — análisis automático) ──────
+# ── Groq IA (opcional) ────────────────────────────
 GROQ_API_KEY=gsk_...
 
 # ── URL del frontend ──────────────────────────────
@@ -167,37 +191,20 @@ FRONTEND_URL=https://tu-servicio.onrender.com
 ## 🗄️ Base de datos
 
 ```bash
-# Crear esquema desde cero
 mysql -u root -p < nova_schema.sql
 ```
-
-Crea todas las tablas, relaciones y datos iniciales (roles, estados, prioridades, tipos de documento, etc.).
-
-### Tablas principales
-
-| Tabla | Descripción |
-|-------|-------------|
-| `usuarios` | Datos del personal con rol, estado, clan, cohorte y avatar |
-| `novedades` | Solicitudes de ausencia con adjunto, prioridad IA y estado |
-| `roles` | Administrador, Coder |
-| `estados` | Activo, Inactivo, Egresado, Abandono, Retirado |
-| `prioridades` | Alta, Media, Baja — asignada por IA al crear |
-| `clan` | Grupos de usuarios |
-| `cohorte` | Generaciones numeradas |
 
 ---
 
 ## ▶️ Ejecución
 
 ```bash
-# Desarrollo (con recarga automática)
+# Desarrollo
 cd backend && npm run dev
 
 # Producción
 cd backend && npm start
 ```
-
-Abre `http://localhost:3000` — el servidor sirve automáticamente el frontend.
 
 ---
 
@@ -205,20 +212,22 @@ Abre `http://localhost:3000` — el servidor sirve automáticamente el frontend.
 
 | Paquete | Versión | Propósito |
 |---------|---------|-----------|
-| `express` | ^4.19.2 | Framework HTTP principal |
-| `mysql2` | ^3.11.3 | Driver MySQL con Promises |
-| `bcryptjs` | ^2.4.3 | Hash de contraseñas pure JS |
-| `jsonwebtoken` | ^9.0.2 | Generación y verificación JWT |
-| `dotenv` | ^16.4.5 | Variables de entorno desde .env |
-| `cors` | ^2.8.5 | Control de orígenes cruzados |
-| `mongoose` | ^8.4.3 | ODM para MongoDB (auditoría) |
-| `nodemailer` | ^6.9.14 | Envío de emails vía SMTP Gmail |
-| `multer` | ^1.4.5-lts.1 | Archivos multipart en memoria |
-| `cloudinary` | ^1.41.0 | CDN de imágenes y archivos |
-| `streamifier` | ^0.1.1 | Buffer a stream para Cloudinary |
-| `groq-sdk` | ^0.5.0 | Cliente Groq para IA LLaMA |
-| `express-validator` | ^7.2.0 | Validación de inputs |
-| `nodemon` (dev) | ^3.1.4 | Recarga automática en desarrollo |
+| `express` | ^4.19.2 | Framework HTTP |
+| `mysql2` | ^3.11.3 | Driver MySQL |
+| `bcryptjs` | ^2.4.3 | Hash contraseñas |
+| `jsonwebtoken` | ^9.0.2 | JWT |
+| `dotenv` | ^16.4.5 | Variables de entorno |
+| `cors` | ^2.8.5 | CORS con lista blanca |
+| **`helmet`** | **^7.x** | **Headers de seguridad** |
+| **`express-rate-limit`** | **^7.x** | **Rate limiting** |
+| `mongoose` | ^8.4.3 | ODM MongoDB |
+| `nodemailer` | ^6.9.14 | SMTP Gmail |
+| `multer` | ^1.4.5-lts.1 | Archivos multipart |
+| `cloudinary` | ^1.41.0 | CDN archivos |
+| `streamifier` | ^0.1.1 | Buffer a stream |
+| `groq-sdk` | ^0.5.0 | IA LLaMA |
+| `express-validator` | ^7.2.0 | Validación inputs |
+| `nodemon` (dev) | ^3.1.4 | Recarga automática |
 
 ---
 
@@ -240,70 +249,41 @@ Abre `http://localhost:3000` — el servidor sirve automáticamente el frontend.
 
 ## 📤 Carga masiva de usuarios
 
-El sistema detecta columnas por nombre — el orden no importa.
-
 **Columnas obligatorias:** `nombre, apellido, documento, correo, password`
 
 **Columnas opcionales:** `tipo_documento, telefono, role, estado, clan, cohorte, horario, observaciones`
 
-```csv
-nombre,apellido,documento,correo,password,telefono,clan,cohorte
-Laura,Martinez,1020304050,laura@correo.com,Pass123,3101234567,Tesla,3
-Carlos,Perez,1030405060,carlos@correo.com,Pass123,3209876543,Turing,3
-```
-
-> Los usuarios importados quedan en estado **Inactivo** por defecto. Las contraseñas se hashean automáticamente.
+> Cada correo se valida con regex antes de insertar. Duplicados se omiten sin error.
 
 ---
 
 ## 🔗 Servicios externos
 
-### Gmail — Envío de emails (Nodemailer + SMTP)
+### Gmail SMTP
+1. Activar verificación en 2 pasos en Google Account
+2. Seguridad → Contraseñas de aplicación → crear para "Correo"
+3. Usar los 16 caracteres **sin espacios** como `SMTP_PASS`
 
-> Permite enviar a **cualquier correo del mundo** sin restricciones.
+### MongoDB Atlas
+1. Crear cluster M0 Free → crear usuario → Network Access `0.0.0.0/0`
+2. Copiar URI como `MONGO_URI`
 
-1. Activar **Verificación en 2 pasos** en tu cuenta de Google
-2. Ir a **Seguridad → Contraseñas de aplicación**
-3. Crear contraseña para "Correo" — se generan 16 caracteres
-4. Usar esos 16 caracteres **sin espacios** como `SMTP_PASS`
-5. Configurar `SMTP_FROM` como `NOVA <tucorreo@gmail.com>`
+### Cloudinary
+1. Copiar Cloud Name, API Key y API Secret del dashboard
 
-### MongoDB Atlas — Auditoría en la nube
-
-1. Crear cluster **M0 Free** en [mongodb.com/atlas](https://www.mongodb.com/atlas)
-2. Crear usuario con permisos de lectura/escritura
-3. En **Network Access** agregar `0.0.0.0/0`
-4. Copiar URI y agregarla como `MONGO_URI`
-
-### Cloudinary — Archivos adjuntos
-
-1. Crear cuenta en [cloudinary.com](https://cloudinary.com)
-2. Copiar Cloud Name, API Key y API Secret del dashboard
-
-### Groq — Inteligencia Artificial
-
-1. Crear cuenta en [console.groq.com](https://console.groq.com)
-2. Generar API Key y agregarla como `GROQ_API_KEY`
-3. Modelo: `llama-3.3-70b-versatile` — 14.400 peticiones/día gratis
+### Groq IA
+1. Generar API Key en console.groq.com → usar como `GROQ_API_KEY`
 
 ---
 
 ## ☁️ Despliegue en Render
-
-> ⚠️ Requiere el **plan Starter ($7/mes)** para desbloquear los puertos SMTP.
 
 | Campo | Valor |
 |-------|-------|
 | Root Directory | `backend` |
 | Build Command | `npm install` |
 | Start Command | `node server.js` |
-| Plan | **Starter** — requerido para SMTP |
-
-1. Conectar repositorio de GitHub en [render.com](https://render.com)
-2. Configurar los campos anteriores
-3. Agregar todas las variables de entorno en **Environment**
-4. Render redespliega automáticamente en cada push
-5. Los redespliegues no tienen costo adicional — precio fijo mensual
+| Plan | **Starter ($7/mes)** — requerido para SMTP |
 
 ---
 
@@ -315,7 +295,7 @@ Carlos,Perez,1030405060,carlos@correo.com,Pass123,3209876543,Turing,3
 | Contraseña | `123456` |
 | Rol | Administrador |
 
-> ⚠️ **Cambiar la contraseña inmediatamente** tras el primer inicio de sesión.
+> ⚠️ Cambiar la contraseña inmediatamente tras el primer inicio de sesión.
 
 ---
 
@@ -325,30 +305,27 @@ Carlos,Perez,1030405060,carlos@correo.com,Pass123,3209876543,Turing,3
 nova/
 ├── backend/
 │   ├── config/
-│   │   ├── cloudinary.js        Configuración Cloudinary
-│   │   ├── mailer.js            Nodemailer + SMTP + templates email
+│   │   ├── cloudinary.js        Cloudinary v1
+│   │   ├── mailer.js            Nodemailer + SMTP + templates
 │   │   ├── mongo.js             Conexión MongoDB Atlas
 │   │   └── mysql.js             Pool conexiones MySQL
 │   ├── controllers/
-│   │   ├── auth.controller.js   Login, registro, recuperación
-│   │   ├── catalogs.controller.js  CRUD clanes y cohortes
-│   │   ├── novedades.controller.js CRUD novedades + IA
-│   │   └── users.controller.js  CRUD usuarios + CSV
-│   ├── middleware/auth.js        Verificación JWT y roles
-│   ├── models/AuditLog.js        Modelo MongoDB auditoría
-│   ├── routes/                  auth, catalogs, novedades, users, audit
+│   │   ├── auth.controller.js   Login, registro, recuperación (con validaciones)
+│   │   ├── catalogs.controller.js
+│   │   ├── novedades.controller.js  Con límites de longitud
+│   │   └── users.controller.js  Con fmt() seguro (excluye password y tokens)
+│   ├── middleware/auth.js        JWT + roles
+│   ├── models/AuditLog.js        MongoDB
+│   ├── routes/
 │   ├── package.json
-│   └── server.js                Punto de entrada
+│   └── server.js                Helmet + Rate limiting + CORS
 ├── frontend/
-│   ├── assets/img/              Logos e imágenes
-│   ├── css/global.css           Estilos globales Light/Dark
-│   ├── js/
-│   │   ├── config.js            URL base de la API
-│   │   └── utils.js             Helpers compartidos
-│   └── pages/                  login, user, users, novedades, config, audit, reset-password
-├── nova_schema.sql              Esquema completo de la BD
-├── render.yaml                  Configuración despliegue Render
-└── usuarios_prueba.csv          CSV de ejemplo
+│   ├── css/global.css
+│   ├── js/config.js
+│   ├── js/utils.js
+│   └── pages/
+├── nova_schema.sql
+└── render.yaml
 ```
 
 ---
@@ -357,58 +334,38 @@ nova/
 
 <details>
 <summary><strong>Emails no se envían — Connection timeout</strong></summary>
-
-El servidor está en plan gratuito de Render que bloquea los puertos SMTP. Subir al **plan Starter ($7/mes)** soluciona el problema permanentemente.
-
+El servidor está en plan gratuito de Render que bloquea SMTP. Subir al plan Starter ($7/mes).
 </details>
 
 <details>
 <summary><strong>Emails no se envían — Invalid login</strong></summary>
-
-`SMTP_PASS` no es la contraseña de aplicación de Google. Regenerarla en:
-Google Account → Seguridad → Verificación en 2 pasos → Contraseñas de aplicación.
-
+SMTP_PASS debe ser la contraseña de aplicación de Google (16 chars sin espacios), no la contraseña normal de Gmail.
 </details>
 
 <details>
-<summary><strong>Error ER_ACCESS_DENIED_ERROR</strong></summary>
-
-Credenciales de MySQL incorrectas. Verificar `DB_USER` y `DB_PASSWORD`.
-
+<summary><strong>Error 429 — Too Many Requests</strong></summary>
+El rate limiting bloqueó la IP por demasiados intentos. En producción esperar 15 minutos. En desarrollo reiniciar el servidor.
 </details>
 
 <details>
-<summary><strong>Análisis de IA retorna prioridad Media siempre</strong></summary>
-
-Verificar que `GROQ_API_KEY` esté configurado. Sin esta key el sistema asigna Media por defecto sin error.
-
+<summary><strong>ER_ACCESS_DENIED_ERROR</strong></summary>
+Credenciales MySQL incorrectas. Verificar DB_USER y DB_PASSWORD.
 </details>
 
 <details>
-<summary><strong>Imágenes o adjuntos no se suben</strong></summary>
-
-Verificar las tres variables de Cloudinary: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`.
-
+<summary><strong>Análisis IA retorna prioridad Media siempre</strong></summary>
+Verificar que GROQ_API_KEY esté configurado correctamente.
 </details>
 
 <details>
 <summary><strong>Módulo de auditoría no registra acciones</strong></summary>
-
-Verificar que `MONGO_URI` apunte a un cluster activo y que `0.0.0.0/0` esté permitido en Network Access de MongoDB Atlas.
-
-</details>
-
-<details>
-<summary><strong>El menú hamburguesa no abre en móvil</strong></summary>
-
-Verificar que `toggleSidebar()` en `utils.js` incluya el manejo de `mobile-open` para pantallas menores a 768px.
-
+Verificar MONGO_URI y que 0.0.0.0/0 esté permitido en MongoDB Atlas Network Access.
 </details>
 
 ---
 
 <div align="center">
 
-Hecho con 💜 — NOVA v2.0.0
+NOVA v1.0.0 — 2026
 
 </div>
