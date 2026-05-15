@@ -1,30 +1,44 @@
 // config/mailer.js
-const nodemailer = require('nodemailer');
+// Usa la API HTTP de Brevo (puerto 443) en lugar de SMTP nodemailer.
+// Esto es necesario porque Render bloquea los puertos SMTP (25, 465, 587)
+// en el plan gratuito desde septiembre 2025.
 
-const transporter = nodemailer.createTransport({
-  host:   process.env.SMTP_HOST || 'smtp.gmail.com',
-  port:   parseInt(process.env.SMTP_PORT) || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
-const FROM = process.env.SMTP_FROM || 'NOVA <novainterprise@gmail.com>';
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+const FROM_NAME     = process.env.SMTP_FROM_NAME  || 'NOVA';
+const FROM_EMAIL    = process.env.SMTP_FROM_EMAIL || 'novainterprise@gmail.com';
 
 const sendMail = async (to, subject, html) => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('SMTP no configurado. Correo no enviado a:', to);
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('BREVO_API_KEY no configurada. Correo no enviado a:', to);
     return;
   }
   try {
-    await transporter.sendMail({ from: FROM, to, subject, html });
+    const response = await fetch(BREVO_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender:      { name: FROM_NAME, email: FROM_EMAIL },
+        to:          [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      const code = err.code || response.status;
+      console.error('Error al enviar correo a', to);
+      console.error('Asunto:', subject);
+      console.error('Codigo:', code);
+      throw new Error(`Brevo API error ${response.status}: ${JSON.stringify(err)}`);
+    }
   } catch (err) {
     console.error('Error al enviar correo a', to);
     console.error('Asunto:', subject);
     console.error('Error:', err.message);
-    console.error('Codigo:', err.code || 'sin codigo');
     throw err;
   }
 };
