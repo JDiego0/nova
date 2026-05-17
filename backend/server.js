@@ -41,13 +41,18 @@ app.use('/api/catalogs',  require('./routes/catalogs.routes'));
 app.use('/api/audit',     require('./routes/audit.routes'));
 
 app.get("/api/health", async (_, res) => {
+  const status = { ok: true, time: new Date(), db: false };
   try {
     const pool = require("./config/mysql");
     await pool.query("SELECT 1");
-    res.json({ ok: true, time: new Date() });
+    status.db = true;
   } catch (err) {
-    res.status(500).json({ ok: false, error: "DB no disponible" });
+    status.ok = false;
+    status.dbError = err.code || err.message;
+    console.error("[Health] MySQL no disponible:", status.dbError);
   }
+  // Siempre 200 para que cron-job.org no desactive el ping
+  res.json(status);
 });
 
 app.use('/api', (req, res) => {

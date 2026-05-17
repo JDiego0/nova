@@ -42,8 +42,16 @@ const pool = mysql.createPool({
   // ── Mantiene las conexiones vivas con pings TCP ──────
   enableKeepAlive:       true,
   keepAliveInitialDelay: 10000,
+  // ── Recicla conexiones inactivas para evitar stale sockets ──
+  idleTimeout:           60000,
+  maxIdle:               0,
   // ── SSL para Aiven ────────────────────────────────────
   ssl: buildSslConfig() || undefined,
+});
+
+// Log de errores a nivel de pool (conexiones rotas, timeouts, etc.)
+pool.pool.on('error', (err) => {
+  console.error('[MySQL Pool] Error de conexión:', err.code || err.message);
 });
  
 module.exports = pool;
